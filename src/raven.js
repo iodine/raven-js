@@ -382,37 +382,6 @@ var Raven = {
 
 Raven.setUser = Raven.setUserContext; // To be deprecated
 
-function triggerEvent(eventType, options) {
-    var event, key;
-
-    options = options || {};
-
-    eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
-
-    if (document.createEvent) {
-        event = document.createEvent('HTMLEvents');
-        event.initEvent(eventType, true, true);
-    } else {
-        event = document.createEventObject();
-        event.eventType = eventType;
-    }
-
-    for (key in options) if (hasKey(options, key)) {
-        event[key] = options[key];
-    }
-
-    if (document.createEvent) {
-        // IE9 if standards
-        document.dispatchEvent(event);
-    } else {
-        // IE8 regardless of Quirks or Standards
-        // IE9 if quirks
-        try {
-            document.fireEvent('on' + event.eventType.toLowerCase(), event);
-        } catch(e) {}
-    }
-}
-
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
     dsnPattern = /^(?:(\w+):)?\/\/(\w+)(:\w+)?@([\w\.-]+)(?::(\d+))?(\/.*)/;
 
@@ -520,11 +489,6 @@ function handleStackInfo(stackInfo, options) {
             }
         });
     }
-
-    triggerEvent('handle', {
-        stackInfo: stackInfo,
-        options: options
-    });
 
     processException(
         stackInfo.name,
@@ -680,15 +644,11 @@ function now() {
 
 function getHttpData() {
     var http = {
-        url: document.location.href,
+        url: 'react-native', // XXX document.location.href,
         headers: {
             'User-Agent': navigator.userAgent
         }
     };
-
-    if (document.referrer) {
-        http.headers.Referer = document.referrer;
-    }
 
     return http;
 }
@@ -748,30 +708,18 @@ function send(data) {
 
 
 function makeRequest(data) {
-    var img = newImage(),
-        src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
-
-    img.crossOrigin = 'anonymous';
-    img.onload = function success() {
-        triggerEvent('success', {
-            data: data,
-            src: src
-        });
-    };
-    img.onerror = img.onabort = function failure() {
-        triggerEvent('failure', {
-            data: data,
-            src: src
-        });
-    };
-    img.src = src;
-}
-
-// Note: this is shitty, but I can't figure out how to get
-// sinon to stub document.createElement without breaking everything
-// so this wrapper is just so I can stub it for tests.
-function newImage() {
-    return document.createElement('img');
+    var requestUrl = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    var requestHeaders = new Headers({
+      "Origin": "*",
+    });
+    fetch(requestUrl, { headers: requestHeaders })
+    .then((response) => response.text())
+    .then((responseText) => {
+      console.log(responseText);
+    })
+    .catch((error) => {
+      console.warn(error);
+    });
 }
 
 function isSetup() {
