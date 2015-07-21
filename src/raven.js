@@ -748,23 +748,28 @@ function send(data) {
 
 
 function makeRequest(data) {
-    var img = newImage(),
-        src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
-
-    img.crossOrigin = 'anonymous';
-    img.onload = function success() {
+    var src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    fetch(src, {
+      method: 'GET',
+      headers: {
+        'Origin': 'start.iodine.com',
+        'Host': 'start.iodine.com'
+      }
+    })
+    .then(function() {
+      console.log('Success');
         triggerEvent('success', {
             data: data,
             src: src
         });
-    };
-    img.onerror = img.onabort = function failure() {
+      })
+      .catch(function(err) {
+      console.log('Failure:', err);
         triggerEvent('failure', {
             data: data,
             src: src
-        });
-    };
-    img.src = src;
+        })
+      });
 }
 
 // Note: this is shitty, but I can't figure out how to get
